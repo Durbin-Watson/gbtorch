@@ -4,45 +4,47 @@
 \alias{gbt.train}
 \title{GBTorch Training.}
 \usage{
-gbt.train(param = list(), y, x, verbose = TRUE)
+gbt.train(y, x, learning_rate = 0.01, loss_function = "mse",
+  nrounds = 50000, verbose = 0, greedy_complexities = TRUE,
+  previous_pred = NULL, weights = NULL)
 }
 \arguments{
-\item{param}{the list of parameters:
-
-1. Task Parameters
-
-\itemize{
-  \item \code{loss_function} specify the learning objective (loss function). Only pre-specified loss functions are currently supported.
-  \itemize{
-  \item \code{mse} regression with squared error loss (Default).
-  \item \code{logloss} logistic regression for binary classification, output score before logistic transformation.
-  }
-}
-
-2. Tree Booster Parameters
-
-\itemize{
-  \item \code{learning_rate} control the learning rate: scale the contribution of each tree by a factor of \code{0 < learning_rate < 1} when it is added to the current approximation. Lower value for \code{learning_rate} implies an increase in the number of boosting iterations: low \code{learning_rate} value means model more robust to overfitting but slower to compute. Default: 0.01
-  \item \code{nrounds} a just-in-case max number of boosting iterations. Default: 5000
-}}
-
 \item{y}{response vector for training. Must correspond to the design matrix \code{x}.}
 
 \item{x}{design matrix for training. Must be of type \code{matrix}.}
 
-\item{verbose}{Boolean: Enable boosting tracing information? Default: \code{TRUE}.}
+\item{learning_rate}{control the learning rate: scale the contribution of each tree by a factor of \code{0 < learning_rate < 1} when it is added to the current approximation. Lower value for \code{learning_rate} implies an increase in the number of boosting iterations: low \code{learning_rate} value means model more robust to overfitting but slower to compute. Default: 0.01}
+
+\item{loss_function}{specify the learning objective (loss function). Only pre-specified loss functions are currently supported.
+\itemize{
+\item \code{mse} regression with squared error loss (Default).
+\item \code{logloss} logistic regression for binary classification, output score before logistic transformation.
+\item \code{poisson} Poisson regression for count data using a log-link, output score before natural transformation.
+\item \code{gamma::neginv} gamma regression using the canonical negative inverse link. Scaling independent of y.
+\item \code{gamma::log} gamma regression using the log-link. Constant information parametrisation. 
+}}
+
+\item{nrounds}{a just-in-case max number of boosting iterations. Default: 50000}
+
+\item{verbose}{Enable boosting tracing information at i-th iteration? Default: \code{0}.}
+
+\item{greedy_complexities}{Boolean: \code{FALSE} means standard GTB, \code{TRUE} means greedy complexity tree-building. Default: \code{TRUE}.}
+
+\item{previous_pred}{prediction vector for training. Boosted training given predictions from another model.}
+
+\item{weights}{weights vector for scaling contributions of individual observations. Default \code{NULL} (the unit vector).}
 }
 \value{
 An object of class \code{ENSEMBLE} with the following elements:
 \itemize{
-  \item \code{handle} a handle (pointer) to the xgboost model in memory.
+  \item \code{handle} a handle (pointer) to the gbtorch model in memory.
   \item \code{initialPred} a field containing the initial prediction of the ensemble.
   \item \code{set_param} function for changing the parameters of the ensemble.
   \item \code{get_param} function for looking up the parameters of the ensemble.
   \item \code{train} function for re-training (or from scratch) the ensemble directly on vector \code{y} and design matrix \code{x}.
   \item \code{predict} function for predicting observations given a design matrix
   \item \code{predict2} function as above, but takes a parameter max number of boosting ensemble iterations.
-  \item \code{get_ensemble_bias} function for calculating the (approximate) optimism of the ensemble.
+  \item \code{estimate_generalization_loss} function for calculating the (approximate) optimism of the ensemble.
   \item \code{get_num_trees} function returning the number of trees in the ensemble.
 }
 }
@@ -68,8 +70,7 @@ y <- rnorm(500, x, 1)
 x.test <- runif(500, 0, 4)
 y.test <- rnorm(500, x.test, 1)
 
-param <- list("learning_rate" = 0.03, "loss_function" = "mse", "nrounds"=2000)
-mod <- gbt.train(param, y, as.matrix(x))
+mod <- gbt.train(y, as.matrix(x))
 y.pred <- predict( mod, as.matrix( x.test ) )
 
 plot(x.test, y.test)
